@@ -1,6 +1,6 @@
 import asyncio
 
-from src.tools import get_company_profile, get_financial_ratios, get_stock_news
+from src.tools import get_company_profile, get_financial_ratios, get_financial_statements, get_stock_news
 
 
 async def main():
@@ -27,6 +27,17 @@ async def main():
         print(f"First News Title: {news_result[0]['title']}")
     else:
         print(f"Result: {news_result}")
+
+    # 4. Test Financial Statements Tool
+    print("\n[4] Invoking 'get_financial_statements'...")
+    statements_result = await get_financial_statements.ainvoke({"ticker": ticker})
+    
+    if "error" not in statements_result:
+        print(f"  - Income Statement entries: {len(statements_result.get('income_statement', []))}")
+        print(f"  - Balance Sheet entries: {len(statements_result.get('balance_sheet', []))}")
+        print(f"  - Cash Flow entries: {len(statements_result.get('cash_flow', []))}")
+    else:
+        print(f"Result: {statements_result}")
 
 
 if __name__ == "__main__":
