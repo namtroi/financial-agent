@@ -46,6 +46,7 @@ def researcher_node(state: AgentState):
         1. get_company_profile
         2. get_financial_ratios
         3. get_stock_news
+        4. get_financial_statements
         
         Do not write the report yet. Just fetch the data.
         """

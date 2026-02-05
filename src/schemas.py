@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -16,8 +14,8 @@ class StockProfile(BaseModel):
     description: str
     sector: str
     industry: str
-    ceo: Optional[str] = None
-    website: Optional[str] = None
+    ceo: str | None = None
+    website: str | None = None
 
     # Allow extra fields in case API returns more data than defined
     model_config = {"extra": "ignore"}
@@ -31,11 +29,11 @@ class KeyMetrics(BaseModel):
     """
 
     symbol: str
-    pe_ratio: Optional[float] = Field(alias="priceToEarningsRatioTTM", default=None)
-    eps: Optional[float] = Field(alias="netIncomePerShareTTM", default=None)
-    roe: Optional[float] = Field(alias="returnOnEquityTTM", default=None)
-    debt_to_equity: Optional[float] = Field(alias="debtEquityRatioTTM", default=None)
-    dividend_yield: Optional[float] = Field(alias="dividendYieldTTM", default=None)
+    pe_ratio: float | None = Field(alias="priceToEarningsRatioTTM", default=None)
+    eps: float | None = Field(alias="netIncomePerShareTTM", default=None)
+    roe: float | None = Field(alias="returnOnEquityTTM", default=None)
+    debt_to_equity: float | None = Field(alias="debtToEquityRatioTTM", default=None)
+    dividend_yield: float | None = Field(alias="dividendYieldTTM", default=None)
 
     model_config = {"extra": "ignore", "populate_by_name": True}
 
@@ -51,8 +49,8 @@ class MarketNews(BaseModel):
     site: str
     text: str
     url: str
-    sentiment: Optional[str] = None  # FMP sometimes provides sentiment analysis
-    image: Optional[str] = None
+    sentiment: str | None = None  # FMP sometimes provides sentiment analysis
+    image: str | None = None
 
     model_config = {"extra": "ignore"}
 
@@ -66,7 +64,7 @@ class FinancialStatement(BaseModel):
     date: str
     symbol: str
     reportedCurrency: str = "USD"
-    fillingDate: Optional[str] = None
+    fillingDate: str | None = None
     period: str
 
     # Allow all other fields (revenue, netIncome, totalAssets, etc.) to pass through

@@ -1,10 +1,10 @@
 import os
-from typing import Any, List, Optional
+from typing import Any
 
 import httpx
 from dotenv import load_dotenv
 
-from src.schemas import KeyMetrics, MarketNews, StockProfile
+from src.schemas import FinancialStatement, KeyMetrics, MarketNews, StockProfile
 
 # Load environment variables from .env file
 load_dotenv()
@@ -30,16 +30,16 @@ class FMPClient:
         """Closes the underlying HTTP client session."""
         await self.client.aclose()
 
-    async def _get(self, endpoint: str, params: dict = {}) -> Any:
+    async def _get(self, endpoint: str, params: dict | None = None) -> Any:
         """
         Internal helper method to execute GET requests with error handling.
         """
-        params = params.copy()
-        params["apikey"] = self.api_key
+        req_params = params.copy() if params else {}
+        req_params["apikey"] = self.api_key
         url = f"{self.BASE_URL}/{endpoint}"
 
         try:
-            response = await self.client.get(url, params=params)
+            response = await self.client.get(url, params=req_params)
             response.raise_for_status()  # Raises exception for 4xx/5xx codes
             return response.json()
 
@@ -51,7 +51,7 @@ class FMPClient:
             print(f"❌ Request Error: {e}")
             return []
 
-    async def get_profile(self, ticker: str) -> Optional[StockProfile]:
+    async def get_profile(self, ticker: str) -> StockProfile | None:
         """
         Fetches company profile.
         FALLBACK STRATEGY:
@@ -87,19 +87,32 @@ class FMPClient:
 
         return None
 
-    async def get_key_metrics(self, ticker: str) -> Optional[KeyMetrics]:
+    async def get_key_metrics(self, ticker: str) -> KeyMetrics | None:
         """
-        Fetches key financial ratios (TTM) using stable API.
-        Uses ratios-ttm endpoint which includes PE ratio and EPS.
+        Fetches key financial metrics (TTM) using stable API.
+        Combines data from ratios-ttm (PE, EPS, Debt/Equity, Dividend Yield)
+        and key-metrics-ttm (ROE) for comprehensive metrics.
         """
-        endpoint = "ratios-ttm"
-        data = await self._get(endpoint, {"symbol": ticker})
+        import asyncio
 
-        if isinstance(data, list) and len(data) > 0:
-            return KeyMetrics(**data[0])
+        # Fetch from both endpoints in parallel
+        ratios_data, metrics_data = await asyncio.gather(
+            self._get("ratios-ttm", {"symbol": ticker}),
+            self._get("key-metrics-ttm", {"symbol": ticker}),
+        )
+
+        # Merge the data (ratios-ttm as base, add ROE from key-metrics-ttm)
+        merged = {}
+        if isinstance(ratios_data, list) and len(ratios_data) > 0:
+            merged.update(ratios_data[0])
+        if isinstance(metrics_data, list) and len(metrics_data) > 0:
+            merged.update(metrics_data[0])
+
+        if merged:
+            return KeyMetrics(**merged)
         return None
 
-    async def get_news(self, ticker: str, limit: int = 5) -> List[MarketNews]:
+    async def get_news(self, ticker: str, limit: int = 5) -> list[MarketNews]:
         """
         Fetches stock market news using stable API.
         """
@@ -119,23 +132,24 @@ class FMPClient:
 
         return news_list
 
-    async def get_financial_statements(self, ticker: str, statement_type: str, limit: int = 4) -> List[dict]:
+    async def get_financial_statements(
+        self, ticker: str, statement_type: str, limit: int = 4
+    ) -> list[FinancialStatement]:
         """
         Fetches financial statements (Income, Balance Sheet, Cash Flow).
-
-        Args:
-            ticker: Stock symbol.
-            statement_type: One of 'income-statement', 'balance-sheet-statement', 'cash-flow-statement'.
-            limit: Number of periods to fetch (default 4 years).
+        Returns a list of Pydantic models with dot-notation access.
         """
-        # Endpoint format: /v3/income-statement/AAPL?limit=4
-        endpoint = f"{statement_type}/{ticker}"
-        params = {"limit": limit}
+        endpoint = statement_type
+        params = {"symbol": ticker, "limit": limit}
 
-        # Note: Financial statements usually don't have a 403 restriction on stable API,
-        # but if they do, we return an empty list.
         data = await self._get(endpoint, params)
 
+        statements = []
         if isinstance(data, list):
-            return data
-        return []
+            for item in data:
+                try:
+                    statements.append(FinancialStatement(**item))
+                except Exception:
+                    continue
+
+        return statements
