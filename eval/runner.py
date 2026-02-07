@@ -61,7 +61,7 @@ def run_evaluation(
 
     # Run eval
     results = evaluate(
-        target=run_agent_sync,
+        run_agent_sync,
         data=dataset_name,
         evaluators=EVALUATORS,
         experiment_prefix=experiment_prefix,
