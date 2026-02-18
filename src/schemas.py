@@ -55,6 +55,20 @@ class MarketNews(BaseModel):
     model_config = {"extra": "ignore"}
 
 
+# 3b. Press Release Model
+class PressRelease(BaseModel):
+    """
+    Represents a company press release from FMP API.
+    """
+
+    symbol: str
+    date: str
+    title: str
+    text: str
+
+    model_config = {"extra": "ignore"}
+
+
 class FinancialStatement(BaseModel):
     """
     Generic model for Income Statement, Balance Sheet, or Cash Flow.

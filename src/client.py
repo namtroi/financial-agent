@@ -10,6 +10,7 @@ from src.schemas import (
     InstitutionalHolder,
     KeyMetrics,
     MarketNews,
+    PressRelease,
     StockProfile,
 )
 
@@ -138,6 +139,27 @@ class FMPClient:
                     continue
 
         return news_list
+
+    async def get_press_releases(
+        self, ticker: str, limit: int = 10
+    ) -> list[PressRelease]:
+        """
+        Fetches company press releases using stable API.
+        Returns official corporate announcements (earnings, contracts, etc.).
+        """
+        endpoint = "news/press-releases"
+        params = {"symbols": ticker, "limit": limit}
+        data = await self._get(endpoint, params)
+
+        releases = []
+        if isinstance(data, list):
+            for item in data:
+                try:
+                    releases.append(PressRelease(**item))
+                except Exception:
+                    continue
+
+        return releases
 
     async def get_financial_statements(
         self, ticker: str, statement_type: str, limit: int = 4
